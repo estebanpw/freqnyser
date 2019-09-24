@@ -32,5 +32,7 @@ unsigned char complement(unsigned char c);
 
 void inplace_reverse_and_complement(unsigned char *d, uint64_t l);
 
+uint64_t * average_smooth(uint64_t l, uint64_t * v, uint64_t window);
+
 
 #endif /* COMMON_FUNCTIONS_H */

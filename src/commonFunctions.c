@@ -168,3 +168,28 @@ void inplace_reverse_and_complement(unsigned char *d, uint64_t l){
     }
 }
 
+uint64_t * average_smooth(uint64_t l, uint64_t * v, uint64_t window){
+    uint64_t * smoothed = (uint64_t *) malloc(l * sizeof(uint64_t));
+    if(smoothed == NULL) terror("Could not allocate average vector");
+
+    if(window == 0) terror("Window must be >0");
+
+
+    int64_t i;
+    int64_t j;
+    uint64_t sum, count;
+    for(i=0; i<(int64_t) l; i++){
+        sum = count = 0;
+        for( j= (i-(int64_t)window); j<(i+(int64_t) window); j++ ){
+
+            if(j >= 0 && j < (int64_t) l){
+                sum += v[j];
+                ++count;
+            }
+        }
+        //printf("At %" PRIu64" with value %" PRIu64" divide by %" PRIu64"\n", i, sum, count);
+        smoothed[i] = (uint64_t)((float)sum/(float)count);
+    }
+
+    return smoothed;
+}

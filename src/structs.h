@@ -36,7 +36,7 @@
 
 typedef struct dictionary{
     uint64_t hash;
-    uint64_t position;
+    int64_t position;
 } Dictionary;
 
 #endif
