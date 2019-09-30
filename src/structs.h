@@ -39,4 +39,16 @@ typedef struct dictionary{
     int64_t position;
 } Dictionary;
 
+typedef struct region{
+    uint64_t p1;
+    uint64_t p2;
+    float score;
+} Region;
+
+typedef struct hotspot{
+    uint64_t start;
+    uint64_t end;
+    float score;
+} Hotspot; 
+
 #endif
