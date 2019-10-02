@@ -51,4 +51,15 @@ typedef struct hotspot{
     float score;
 } Hotspot; 
 
+typedef struct kmer{
+    uint64_t hash;
+    mutable float frequency;
+
+    bool operator<(const kmer& t) const
+    { 
+        return (this->hash < t.hash); 
+    } 
+
+} Kmer;
+
 #endif

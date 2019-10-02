@@ -17,6 +17,8 @@ USAGE       Usage is described by calling ./unikmers --help
 #include <string.h>
 #include <ctype.h>
 #include <iostream>
+#include <algorithm>
+#include <set>
 #include <list>
 #include "structs.h"
 #include "commonFunctions.h"
@@ -33,21 +35,22 @@ char * seq_x, * seq_y;
 long double theta;
 float THRESHOLD = 4;
 
-
 uint64_t get_seq_len(FILE * f);
 uint64_t load_seq(FILE * f, char * seq);
 std::list<Hotspot> * load_hotspots(FILE * hotspots);
 void reverse_complement(char * origin, char * dest);
 char * init_args(int argc, char ** av, FILE ** query, FILE ** hotspots, FILE ** out_results, uint64_t * custom_kmer, uint64_t * selected_hash);
-void generate_distribution(uint64_t * frequency_table, uint64_t * frequency_nucl, Dictionary * d, uint64_t k, FILE * query, uint64_t query_l);
+void generate_distribution(uint64_t * frequency_table, uint64_t * frequency_nucl, Dictionary * d, uint64_t k, FILE * query, uint64_t query_l, uint64_t selected_hash);
+std::set<Kmer> * generate_kmer_lists(uint64_t k, FILE * query, uint64_t query_l);
 void generate_plotting_vector(uint64_t * frequency_table, uint64_t * frequency_nucl, Dictionary * d, uint64_t k, uint64_t query_l, uint64_t selected_hash, FILE * out_results, uint64_t factor_scale);
 std::list<Region> * detect_density_regions(Dictionary * d, uint64_t * frequency_table, uint64_t query_l, uint64_t selected_hash, FILE * out_results);
 void check_density_hotspots(Dictionary * d, uint64_t * frequency_table, std::list<Hotspot> * hotspot_list, uint64_t query_l, uint64_t selected_hash);
 bool compare_regions(const Region& first, const Region& second);
 bool compare_hotspots(const Hotspot& first, const Hotspot& second);
+bool compare_kmers(const Kmer &first, const Kmer &second);
 void write_regions(Dictionary * d, uint64_t query_l, uint64_t selected_hash, FILE * out_results);
 void write_average_regions(Dictionary * d, uint64_t query_l, uint64_t selected_hash, FILE * out_results);
-void print_distribution(uint64_t * frequency_table, uint64_t k);
+
 
 
 int main(int argc, char ** av){
@@ -56,14 +59,13 @@ int main(int argc, char ** av){
 
     // @@@@@@@@@@@@@@@@@@@@@@@ Parameter init stuff
 
-    FILE * query = NULL, * out_results = NULL, * raw_out = NULL, * density_out = NULL, * average_out = NULL, * hotspots = NULL;
+    FILE * query = NULL, * out_results = NULL, * raw_out = NULL, * density_out = NULL, * average_out = NULL, * hotspots = NULL, * hostpot_density;
     char * exp_name = init_args(argc, av, &query, &hotspots, &out_results, &custom_kmer, &selected_hash);
     char out_name[MAX_NAME]; out_name[0] = '\0'; 
 
 
 
-    uint64_t * frequency_table = (uint64_t *) calloc(1 << (2*custom_kmer), sizeof(uint64_t));
-    if(frequency_table == NULL) terror("Could not allocate frequency table");
+    uint64_t frequency_table = 0;
     uint64_t frequency_nucl[4] = {0, 0, 0, 0};
 
     query_l = get_seq_len(query);
@@ -76,7 +78,7 @@ int main(int argc, char ** av){
 
     fprintf(stdout, "[INFO] Generating frequency distributions.\n");
 
-    generate_distribution(frequency_table, frequency_nucl, d, custom_kmer, query, query_l);
+    generate_distribution(&frequency_table, frequency_nucl, d, custom_kmer, query, query_l, selected_hash);
 
     fprintf(stdout, "\n[INFO] Completed.\n");
 
@@ -88,9 +90,9 @@ int main(int argc, char ** av){
         strcpy(&out_name[0], exp_name); strcat(out_name, "_density.vec"); density_out = fopen(out_name, "wt"); if(density_out == NULL) terror("Could not open output vector file (2)");
         strcpy(&out_name[0], exp_name); strcat(out_name, "_average.vec");average_out = fopen(out_name, "wt"); if(average_out == NULL) terror("Could not open output vector file (3)");
 
-        generate_plotting_vector(frequency_table, frequency_nucl, d, custom_kmer, query_l, selected_hash, out_results, (uint64_t) ((float)query_l / (float) VECTOR_L) );
+        generate_plotting_vector(&frequency_table, frequency_nucl, d, custom_kmer, query_l, selected_hash, out_results, (uint64_t) ((float)query_l / (float) VECTOR_L) );
 
-        std::list<Region> * density_list = detect_density_regions(d, frequency_table, query_l, selected_hash, out_results);
+        std::list<Region> * density_list = detect_density_regions(d, &frequency_table, query_l, selected_hash, out_results);
 
         fprintf(stdout, "[INFO] Sorting\n");
 
@@ -129,35 +131,43 @@ int main(int argc, char ** av){
 
     }
 
+    // @@@@@@@@@@@@@@@@@@@@@@@ Generate all possible kmers
+
+    //std::set<Kmer> * kmers_list = generate_kmer_lists(custom_kmer, query, query_l);
+
+    //std::cout << "[INFO] There are " << kmers_list->size() << " unique kmers\n";
+
     // @@@@@@@@@@@@@@@@@@@@@@@ Checking hotspots
 
     if(hotspots != NULL){
 
+        strcpy(&out_name[0], exp_name); strcat(out_name, "_hotspots.vec"); hostpot_density = fopen(out_name, "wt"); if(hostpot_density == NULL) terror("Could not open output vector file (4)");
+
         std::list<Hotspot> * hotspot_list = load_hotspots(hotspots);
         
-        check_density_hotspots(d, frequency_table, hotspot_list, query_l, selected_hash);
+        check_density_hotspots(d, &frequency_table, hotspot_list, query_l, selected_hash);
 
         hotspot_list->sort(compare_hotspots);
-
         
         std::list<Hotspot>::iterator hit;
         i = 0;
-        std::cout << "Start" << "\t\t" << "End" << "\t\t" << "Mean" << "\t\t" << "Ratio" << "\n";
+        std::cout << "Start" << "\t\t" << "End" << "\t\t" << "Mean" << "\t\t" << "\t\t" << "K-mer mean" << "\t\t" << "Ratio" << "\t\t" << "Periods\n";
+        fprintf(hostpot_density, "Start,End,Mu,Mupop,Ratio\n");
         for (hit=hotspot_list->begin(); hit!=hotspot_list->end(); ++hit) {
 
-            if(i<50) std::cout << (*hit).start << "\t\t" << (*hit).end << "\t\t" << (*hit).score << "\t\t" << (*hit).score/(float) theta << "\t\t" << 1/(*hit).score << "/" << 1/theta << "\n";
+            if(i<50) std::cout << (*hit).start << "\t\t" << (*hit).end << "\t\t" << (*hit).score << "\t\t" << theta << "\t\t" << (*hit).score/(float) theta << "\t\t" << 1/(*hit).score << "/" << 1/theta << "\n";
+            fprintf(hostpot_density, "%" PRIu64",%" PRIu64",%f,%f,%f\n", (*hit).start, (*hit).end, (*hit).score, (float) theta, (*hit).score/(float) theta);
             ++i;
 
         }
-        
 
+        fclose(hostpot_density);
     }
 
 
     fclose(query);
     if(hotspots != NULL) fclose(hotspots);
 
-    free(frequency_table);
     free(d);
     free(exp_name);
 
@@ -315,7 +325,7 @@ std::list<Hotspot> * load_hotspots(FILE * hotspots){
     return hotspot_list;
 }
 
-void generate_distribution(uint64_t * frequency_table, uint64_t * frequency_nucl, Dictionary * d, uint64_t k, FILE * query, uint64_t query_l){
+void generate_distribution(uint64_t * frequency_table, uint64_t * frequency_nucl, Dictionary * d, uint64_t k, FILE * query, uint64_t query_l, uint64_t selected_hash){
 
     
     //char curr_kmer[k];
@@ -383,7 +393,7 @@ void generate_distribution(uint64_t * frequency_table, uint64_t * frequency_nucl
             //getchar();
 
             //if(hash >= (uint64_t) (1 << (2*k))) fprintf(stdout, "REPORTED!!!!!!!\n");
-            ++frequency_table[hash]; // True distribution
+            if(hash == selected_hash) ++(*frequency_table); // True distribution
             
             d[current_len - k].hash = hash;
             d[current_len - k].position = (int64_t) (current_len - k);
@@ -426,7 +436,7 @@ void generate_plotting_vector(uint64_t * frequency_table, uint64_t * frequency_n
     
 
     fprintf(out_results, "%s\n", word);
-    fprintf(out_results, "%" PRIu64"\n", frequency_table[selected_hash]);
+    fprintf(out_results, "%" PRIu64"\n", *frequency_table);
     fprintf(out_results, "%" PRIu64"\n", query_l);
     fprintf(out_results, "%f\n", p_c);
 
@@ -497,7 +507,7 @@ void generate_plotting_vector(uint64_t * frequency_table, uint64_t * frequency_n
 
 std::list<Region> * detect_density_regions(Dictionary * d, uint64_t * frequency_table, uint64_t query_l, uint64_t selected_hash, FILE * out_results){
 
-    theta = (long double) frequency_table[selected_hash] / (long double) query_l;
+    theta = (long double) (*frequency_table) / (long double) query_l;
     long double theta_inv = 1 / theta;
     fprintf(stdout, "[INFO] Theta = %Le, period = %Le\n", theta, theta_inv);
     uint64_t i = 0, j, p_i, end_position = 0;
@@ -562,7 +572,7 @@ std::list<Region> * detect_density_regions(Dictionary * d, uint64_t * frequency_
 
 void check_density_hotspots(Dictionary * d, uint64_t * frequency_table, std::list<Hotspot> * hotspot_list, uint64_t query_l, uint64_t selected_hash){
 
-    theta = (long double) frequency_table[selected_hash] / (long double) query_l;
+    theta = (long double) (*frequency_table) / (long double) query_l;
     long double theta_inv = 1 / theta;
     fprintf(stdout, "[INFO] Theta = %Le, period = %Le\n", theta, theta_inv);
     uint64_t i = 0, p_i = 0;
@@ -573,9 +583,9 @@ void check_density_hotspots(Dictionary * d, uint64_t * frequency_table, std::lis
 
         i = (*it).start;
 
-        while(i<(*it).end){
+        p_i = 0;
 
-            p_i = 0;
+        while(i<(*it).end){
 
             if(d[i].position != -1 && d[i].hash == selected_hash) ++p_i;
 
@@ -588,6 +598,98 @@ void check_density_hotspots(Dictionary * d, uint64_t * frequency_table, std::lis
     }
 
 }
+
+std::set<Kmer> * generate_kmer_lists(uint64_t k, FILE * query, uint64_t query_l){
+    
+    std::set<Kmer> * kmers_list = new std::set<Kmer>();
+    
+    uint64_t word_size = 0;
+
+    //To hold all information related to database
+    uint64_t current_len = 0;   
+
+    // Variables to read kmers
+    char c = 'N'; //Char to read character
+
+    seq_x = NULL;
+    if ((seq_x = (char *) calloc(query_l, sizeof(char))) == NULL) {
+        terror("Could not allocate memory for sequence x");
+    }
+
+    load_seq(query, seq_x);
+
+    uint64_t hash = 0;
+
+    uint64_t mask = (1 << (2*k)) - 1;
+
+    // @@@@@@@@@@@@@@@@@ First pass to generate all words
+
+    while( current_len < query_l ) {
+        c = seq_x[current_len++];
+        if(c == 'A' || c == 'C' || c == 'G' || c == 'T') {
+            if(word_size < k) ++word_size;
+            if(c == 'A') { hash = (hash << 2) + 0; }
+            if(c == 'C') { hash = (hash << 2) + 1; }
+            if(c == 'G') { hash = (hash << 2) + 2; }
+            if(c == 'T') { hash = (hash << 2) + 3; }
+            hash = hash & mask;
+        }else{ //It can be anything (including N, Y, X ...)
+            if(c != '\n' && c != '>') {
+                hash = 0;
+                word_size = 0;
+                ++current_len;
+            } 
+        }
+        if(word_size == k){   
+            Kmer kmer; kmer.hash = hash; kmer.frequency = 0;
+            kmers_list->insert(kmer);
+        }
+    }
+
+
+    // @@@@@@@@@@@@@@@@@@ We have the list of kmers here 
+    std::cout << " Looking for adventure \n";
+
+    std::cout << " Sorting \n";
+
+    current_len = 0;
+
+    while( current_len < query_l ) {
+        c = seq_x[current_len++];
+        if(c == 'A' || c == 'C' || c == 'G' || c == 'T') {
+            if(word_size < k) ++word_size;
+            if(c == 'A') { hash = (hash << 2) + 0; }
+            if(c == 'C') { hash = (hash << 2) + 1; }
+            if(c == 'G') { hash = (hash << 2) + 2; }
+            if(c == 'T') { hash = (hash << 2) + 3; }
+            hash = hash & mask;
+        }else{ //It can be anything (including N, Y, X ...)
+            if(c != '\n' && c != '>') {
+                hash = 0;
+                word_size = 0;
+                ++current_len;
+            } 
+        }
+        if(word_size == k){   
+            
+            Kmer search;
+            search.hash = hash;
+            std::set<Kmer>::iterator it = kmers_list->find(search);
+
+            ++((*it).frequency);
+
+        }
+    }
+
+
+
+    free(seq_x);
+
+    return kmers_list;
+}
+
+
+
 
 // This sort is inverted @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -636,17 +738,5 @@ void write_average_regions(Dictionary * d, uint64_t query_l, uint64_t selected_h
         }
         fprintf(out_results, "%f\n", (float)sum/float(total));
         
-    }
-}
-
-void print_distribution(uint64_t * frequency_table, uint64_t k){
-    uint64_t i;
-    char word[k+1];
-    
-    for( i=0; i< (uint64_t) (1 << (2*k)); i++ ){
-
-        perfect_hash_to_word(word, i, k);
-        word[k] = '\0';
-        fprintf(stdout, "%s : (%" PRIu64") \t\t %" PRIu64"\n", word, i, frequency_table[i]);
     }
 }
