@@ -12,7 +12,7 @@ vector=$3
 
 len=$(expr $2 - $1)
 
-echo "$len"
+#echo ">$len"
 
 # For the seq
 

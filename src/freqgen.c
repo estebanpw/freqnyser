@@ -151,15 +151,26 @@ int main(int argc, char ** av){
         
         std::list<Hotspot>::iterator hit;
         i = 0;
+
+        float average_hotspots = 0;
+        float variance = 0;
+
         std::cout << "Start" << "\t\t" << "End" << "\t\t" << "Mean" << "\t\t" << "\t\t" << "K-mer mean" << "\t\t" << "Ratio" << "\t\t" << "Periods\n";
         fprintf(hostpot_density, "Start,End,Mu,Mupop,Ratio\n");
         for (hit=hotspot_list->begin(); hit!=hotspot_list->end(); ++hit) {
 
-            if(i<50) std::cout << (*hit).start << "\t\t" << (*hit).end << "\t\t" << (*hit).score << "\t\t" << theta << "\t\t" << (*hit).score/(float) theta << "\t\t" << 1/(*hit).score << "/" << 1/theta << "\n";
+            if(i<5) std::cout << (*hit).start << "\t\t" << (*hit).end << "\t\t" << (*hit).score << "\t\t" << theta << "\t\t" << (*hit).score/(float) theta << "\t\t" << 1/(*hit).score << "/" << 1/theta << "\n";
             fprintf(hostpot_density, "%" PRIu64",%" PRIu64",%f,%f,%f\n", (*hit).start, (*hit).end, (*hit).score, (float) theta, (*hit).score/(float) theta);
             ++i;
+            average_hotspots += (*hit).score;
+            variance += ((*hit).score * (*hit).score);
 
         }
+        average_hotspots = average_hotspots / (float) i;
+        variance = variance / (float) i - (float) theta * (float) theta;
+
+        std::cout << " Average distribution = " << theta << ", Average hotspots = " << average_hotspots << ", Variance = " << variance << "\n";
+        if(theta < average_hotspots) std::cout << "The polystring has higher frequency within hotspots\n";
 
         fclose(hostpot_density);
     }
