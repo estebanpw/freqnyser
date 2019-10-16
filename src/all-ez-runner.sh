@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ $# != 3 ]; then
-    echo "***ERROR*** Use: $0 <min porcentual difference> <max_depth> <chromo>"
+if [ $# != 1 ]; then
+    echo "***ERROR*** Use: $0 <max_depth>"
     exit -1
 fi
 
@@ -30,22 +30,18 @@ add_dimension () { #$1 is nucleotide string
         local _significative="$(awk "BEGIN{ if("$_porcentualDiff" > "${depths["$_len"]}") print 1; else print 0; }")"
         echo "$_word produces: ${_formatted[3]} ${_formatted[7]} ${_formatted[10]} $_porcentualDiff $_significative"
 
-		if [ $_significative -eq 1 ];
-		then
 			
-			add_dimension $_word
+		add_dimension $_word
 
-		fi
 
 
 	done
 }
 
-minPorcentualDiff=$1
-maxDepth=$2
+maxDepth=$1
 
 nucl=(A C G T)
-depths=(0 0 30 60 75 80 90 180 210 240 270 300)
+depths=(0 0 0 0 0 0 0 0 0 0 0 0 0 0)
 
 #echo ${nucl[@]}
 
@@ -59,7 +55,7 @@ depths=(0 0 30 60 75 80 90 180 210 240 270 300)
 #echo "$val"
 
 
-chromo=$3
+chromo="16"
 var="homsa_${chromo}_$kmer.dat"
 
 for i in ${nucl[@]};
@@ -77,16 +73,13 @@ do
 		
 
 		porcentualDiff="$(awk "BEGIN{ print ("$hotsAvg" - "$distrAvg")/("$distrAvg")*100 }"  )"
-		significative="$(awk "BEGIN{if("$porcentualDiff" > "$minPorcentualDiff") print 1; else print 0; }")"
+		significative="$(awk "BEGIN{if("$porcentualDiff" > 0) print 1; else print 0; }")"
 		echo "$str produces: ${formatted[3]} ${formatted[7]} ${formatted[10]} $porcentualDiff $significative"
 
-		if [ $significative -eq 1 ];
-		then
 
-			currNucl=$str
-			add_dimension $currNucl
+		currNucl=$str
+		add_dimension $currNucl
 
-		fi
 
 	done
 

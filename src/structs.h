@@ -62,4 +62,13 @@ typedef struct kmer{
 
 } Kmer;
 
+typedef struct significative{
+    uint64_t hash;
+    long double noh_freq;
+    long double h_freq;
+    float difpor;
+    uint64_t tx;
+    uint64_t ty;
+} Significative;
+
 #endif
