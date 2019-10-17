@@ -3,7 +3,7 @@ CXX=g++
 CFLAGS=-O3 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -Wall #-DVERBOSE
 BIN=../bin
 
-all: freqgen massive-gen compare-gen
+all: freqgen massive-gen compare-gen consecutive-finder
 
 
 
@@ -16,6 +16,8 @@ massive-gen: massive-gen.c
 compare-gen: compare-gen.c
 	$(CXX) $(CFLAGS) commonFunctions.c -lm compare-gen.c -lm -o $(BIN)/compare-gen
 
+consecutive-finder: consecutive-finder.c
+	$(CXX) $(CFLAGS) commonFunctions.c -lm consecutive-finder.c -lm -o $(BIN)/consecutive-finder
 
 clean:
-	rm -rf $(BIN)/freqgen $(BIN)/massive-gen $(BIN)/compare-gen
+	rm -rf $(BIN)/freqgen $(BIN)/massive-gen $(BIN)/compare-gen $(BIN)/consecutive-finder
