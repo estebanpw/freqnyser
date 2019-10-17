@@ -48,6 +48,8 @@ int main(int argc, char ** av){
 
     fprintf(stdout, "Searching motifs [%s] of len [%d]!\n", motif, (int)strlen(motif));
 
+
+	fprintf(out_re, "#KMER %s\n", motif);
     find_chains(query, max_chain_dist, motif, out_re);
 
     fclose(out_re);
@@ -86,7 +88,7 @@ void init_args(int argc, char ** av, FILE ** query, FILE ** out_results, char * 
             pNum+=2;
         }
         else if(strcmp(av[pNum], "-out") == 0){
-            *out_results = fopen(av[pNum+1], "wt");
+            *out_results = fopen(av[pNum+1], "a");
             if(out_results==NULL) terror("Could not open output file");
             pNum+=2;
         }
