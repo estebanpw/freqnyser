@@ -56,16 +56,16 @@ int main(int argc, char ** av){
     }
 
     char word[custom_kmer+1];
-
+    word[custom_kmer] = '\0';
     for(uint64_t i=0; i<total_ksize; i++){
     	total_amount += kmers_freq_abs[i];
     }
 
-	std::cout << "kmer, abs_freq, rel_freq\n";
+	//std::cout << "kmer, abs_freq, rel_freq\n";
 	fprintf(out_file, "kmer, abs_freq, rel_freq\n");
     for(uint64_t i=0; i<total_ksize; i++){
     	perfect_hash_to_word(word, i, (uint32_t) custom_kmer);
-    	std::cout << word << ", " << kmers_freq_abs[i] << ", " << ((float)kmers_freq_abs[i]/(float)total_amount) << "\n";
+    	//std::cout << word << ", " << kmers_freq_abs[i] << ", " << ((float)kmers_freq_abs[i]/(float)total_amount) << "\n";
     	fprintf(out_file, "%s, %" PRIu64", %f\n", word, kmers_freq_abs[i], ((float)kmers_freq_abs[i]/(float)total_amount));
     }
         
