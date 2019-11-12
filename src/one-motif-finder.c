@@ -46,7 +46,7 @@ int main(int argc, char ** av){
     init_args(argc, av, &query, &out_re, motif, &max_chain_dist);
     min_chain_dist = 2*strlen(motif);
 
-    fprintf(stdout, "Searching 3 consecutive motifs [%s] of len [%d] [N's NOT allowed]!\n", motif, (int)strlen(motif));
+    fprintf(stdout, "Searching motifs [%s] of len [%d] [UNCHAINED] [N's are allowed]!\n", motif, (int)strlen(motif));
 
 
 	fprintf(out_re, "#KMER %s\n", motif);
@@ -88,7 +88,7 @@ void init_args(int argc, char ** av, FILE ** query, FILE ** out_results, char * 
             pNum+=2;
         }
         else if(strcmp(av[pNum], "-out") == 0){
-            *out_results = fopen(av[pNum+1], "a");
+            *out_results = fopen(av[pNum+1], "wt");
             if(out_results==NULL) terror("Could not open output file");
             pNum+=2;
         }
@@ -159,7 +159,7 @@ uint64_t load_seq(FILE * f, char * seq) {
 void find_chains(FILE * query, uint64_t max_chain_dist, char * motif, FILE * out_re){
 
     uint64_t query_l = get_seq_len(query);
-    uint64_t current_position = 0, s1 = 0, s2 = 0, s3 = 0;
+    uint64_t current_position = 0, s1; 
     uint64_t motif_len = strlen(motif);
 
     char * seq_x = NULL;
@@ -174,24 +174,11 @@ void find_chains(FILE * query, uint64_t max_chain_dist, char * motif, FILE * out
 
         //printf("Lets go %" PRIu64" @ %.*s\n", current_position, 10, &seq_x[current_position]);
         if(1 == search_chain(&current_position, &s1, seq_x, query_l, motif)){
-            current_position = s1 + motif_len;
-            //printf("Lets go 2\n");
-            if(1 == search_chain(&current_position, &s2, seq_x, query_l, motif) && (s2-s1) < max_chain_dist && (s2-s1+motif_len) > min_chain_dist){
-                current_position = s2 + motif_len;
-                //printf("Lets go 3\n");
-                if(1 == search_chain(&current_position, &s3, seq_x, query_l, motif) && (s3-s2) < max_chain_dist && (s3-s2+motif_len) > min_chain_dist){
-                    
 
-                    current_position = s2 + motif_len; // Go back to second chain to try from there
-                    s3 = s3 + 2*motif_len; // Increase last so that it also takes extra DNA in the motif
-                    if(s3 > query_l) s3 = query_l;
+            fprintf(stdout, "%" PRIu64 "\n", s1);
+            fprintf(out_re, "> %" PRIu64 "\n", s1);
+            fprintf(out_re, "%.*s\n", (int)(2*motif_len), &seq_x[s1]);
 
-                    fprintf(stdout, "%" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n", s1, s2, s3);
-                    fprintf(out_re, "> %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n", s1, s2, s3);
-                    fprintf(out_re, "%.*s\n", (int)(s3-s1+motif_len), &seq_x[s1] );
-
-                }
-            }
         }
         ++current_position;
     }
@@ -206,6 +193,7 @@ int search_chain(uint64_t * current_position, uint64_t * position, char * seq_x,
     uint64_t matches = 0, l = 0;
     uint64_t motif_pos = 0, motif_len = strlen(motif);
     float pident;
+    uint64_t pre_position = *current_position;
 
 
 
@@ -213,11 +201,12 @@ int search_chain(uint64_t * current_position, uint64_t * position, char * seq_x,
         
         c = seq_x[(*current_position)++];
             
-        if(c == 'A' || c == 'C' || c == 'G' || c == 'T') {
+        if(c == 'A' || c == 'C' || c == 'G' || c == 'T' || c == 'N') {
 
             // AAAAATTAGCCAA
             
-            if(motif[motif_pos++] == c) ++matches;
+            if(motif[motif_pos] == c || motif[motif_pos] == 'N') ++matches;
+            ++motif_pos;
 
             ++l;
 
@@ -228,6 +217,9 @@ int search_chain(uint64_t * current_position, uint64_t * position, char * seq_x,
                 matches = 0;
                 motif_pos = 0;
                 l = 0;
+                ++pre_position;
+                *current_position = pre_position;
+
             }
 
             if(motif_pos == motif_len && pident >= THRESHOLD){
@@ -239,6 +231,7 @@ int search_chain(uint64_t * current_position, uint64_t * position, char * seq_x,
         }else{ //It can be anything (including N, Y, X ...)            
             
             ++(*current_position);
+            ++(pre_position);
             matches = 0;
             motif_pos = 0;
             l = 0;

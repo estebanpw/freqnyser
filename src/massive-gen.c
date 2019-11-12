@@ -106,12 +106,10 @@ void init_args(int argc, char ** av, FILE ** query, FILE ** out_results, uint64_
     while(pNum < argc){
         if(strcmp(av[pNum], "--help") == 0){
             fprintf(stdout, "USAGE:\n");
-            fprintf(stdout, "           freqgen -query [query] -out [out]\n");
+            fprintf(stdout, "           massive-gen -query [query] -out [out]\n");
             fprintf(stdout, "OPTIONAL:\n");
             fprintf(stdout, "           -kmer       [Integer:   k>1 (default 2)]\n");
-            fprintf(stdout, "           -word       [String:    word to plot (default AA)\n");
             fprintf(stdout, "           -lambda     [Float:     Scalar for minimum average threshold\n");
-            fprintf(stdout, "           -hotspots   [File]      File containing hotspots\n");
             fprintf(stdout, "           --help      Shows help for program usage\n");
             fprintf(stdout, "\n");
             exit(1);
