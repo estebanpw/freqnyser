@@ -2,7 +2,7 @@
 
 File        unikmers.c
 Author      EPW <estebanpw@uma.es>
-Description Computes HSPs using unique hits with a variable degree of uniqueness
+Description
 
 USAGE       Usage is described by calling ./unikmers --help
 
@@ -58,8 +58,6 @@ int main(int argc, char ** av){
         if(mers_table[i] == NULL) terror("Could not alocate second loop");
     }
 
-    
-
     query_l = get_seq_len(query);
 
     fprintf(stdout, "[INFO] Generating frequency distributions\n");
@@ -68,8 +66,6 @@ int main(int argc, char ** av){
 
     fprintf(stdout, "\n[INFO] Completed\n");
 
-
-    
 
     fclose(query);
 
@@ -82,8 +78,15 @@ int main(int argc, char ** av){
         printf("----------for k=%" PRIu64"\n", i);
         */
         free(mers_table[i]);
-    } 
+    }
+
     free(mers_table);
+    
+    
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    fwrite(&query_l, sizeof(uint64_t), 1, out_results);
+    fprintf(stdout, "\n[LENGTH] %" PRIu64"\n", query_l);
+    
     fclose(out_results);
     
     return 0;

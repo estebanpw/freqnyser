@@ -1,12 +1,9 @@
 /*********
 
-File        unikmers.c
-Author      EPW <estebanpw@uma.es>
-Description Computes HSPs using unique hits with a variable degree of uniqueness
+AUTHOR		Marcos SR
 
-USAGE       Usage is described by calling ./unikmers --help
-
-
+USAGE		./read-massgen-file <input file> <custom kmer> <out file>
+DESCRIPTION	Read a massive-gen generated file with parameter 12 and generates a custom kmer frequency table
 
 **********/
 
@@ -32,7 +29,7 @@ USAGE       Usage is described by calling ./unikmers --help
 
 int main(int argc, char ** av){
 
-    uint64_t i, custom_kmer = 2, total_amount = 0;
+    uint64_t i, custom_kmer = 2, total_amount = 0, seq_length = 0;
 
     if(argc != 4) { fprintf(stderr, "ERROR: Use %s massgen_file ksize out_file\n", av[0]); exit(-1); }
 
@@ -48,7 +45,7 @@ int main(int argc, char ** av){
 
     uint64_t * kmers_freq_abs = (uint64_t *) calloc(total_ksize, sizeof(uint64_t));
     if(kmers_freq_abs == NULL) terror("Could not allocate first kmers absolute table");
-    
+
     for(i=0; i<custom_kmer; i++){
         total_ksize = (uint64_t) 4 << (2*i);
         fread(&kmers_freq_abs[0], sizeof(uint64_t), total_ksize, massgen_file);
@@ -56,23 +53,34 @@ int main(int argc, char ** av){
     }
 
     char word[custom_kmer+1];
-
+    word[custom_kmer] = '\0';
     for(uint64_t i=0; i<total_ksize; i++){
     	total_amount += kmers_freq_abs[i];
     }
 
-	std::cout << "kmer, abs_freq, rel_freq\n";
-	fprintf(out_file, "kmer, abs_freq, rel_freq\n");
+    
+    // LEER LA MIERDA DE LA LONGITUD DE LA SECUENCIA QUE ESTA AL FINAL DEL FICHERO, JODER
+    while(!feof(massgen_file)) fread(&seq_length, sizeof(uint64_t), 1, massgen_file);
+    std::cout << "[LENGTH] " <<seq_length << "\n";
+    
+    fprintf(out_file, "kmer,abs_freq,rel_freq\n");
+
+    // !!!!!!!!!!!PROBABLY NOT THE BEST WAY
+    fprintf(out_file, "length,%" PRIu64",%" PRIu64"\n", seq_length, seq_length);
+
+
+    //fprintf(out_file, "kmer,abs_freq,rel_freq\n");
+
     for(uint64_t i=0; i<total_ksize; i++){
     	perfect_hash_to_word(word, i, (uint32_t) custom_kmer);
-    	std::cout << word << ", " << kmers_freq_abs[i] << ", " << ((float)kmers_freq_abs[i]/(float)total_amount) << "\n";
-    	fprintf(out_file, "%s, %" PRIu64", %f\n", word, kmers_freq_abs[i], ((float)kmers_freq_abs[i]/(float)total_amount));
+    	//std::cout << word << ", " << kmers_freq_abs[i] << ", " << ((float)kmers_freq_abs[i]/(float)total_amount) << "\n";
+    	fprintf(out_file, "%s,%" PRIu64",%f\n", word, kmers_freq_abs[i], ((float)kmers_freq_abs[i]/(float)total_amount));
+	//fprintf(out_file, "%s%, f\n", word, ((float)kmers_freq_abs[i]/(float)total_amount));
     }
-        
 
     fclose(massgen_file);
     fclose(out_file);
     free(kmers_freq_abs);
-    
+
     return 0;
 }
