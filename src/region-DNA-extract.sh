@@ -13,6 +13,7 @@ vector=$3
 len=$(expr $2 - $1)
 
 #echo ">$len"
+echo ">$start to $end"
 
 # For the seq
 

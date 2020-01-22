@@ -175,12 +175,12 @@ void find_chains(FILE * query, uint64_t max_chain_dist, char * motif, FILE * out
         //printf("Lets go %" PRIu64" @ %.*s\n", current_position, 10, &seq_x[current_position]);
         if(1 == search_chain(&current_position, &s1, seq_x, query_l, motif)){
 
-            fprintf(stdout, "%" PRIu64 "\n", s1);
+            //fprintf(stdout, "%" PRIu64 "\n", s1);
             fprintf(out_re, "> %" PRIu64 "\n", s1);
-            fprintf(out_re, "%.*s\n", (int)(2*motif_len), &seq_x[s1]);
+            fprintf(out_re, "%.*s\n", (int)(4*motif_len), &seq_x[s1]);
 
         }
-        ++current_position;
+        //++current_position;
     }
 
     free(seq_x);
@@ -199,7 +199,8 @@ int search_chain(uint64_t * current_position, uint64_t * position, char * seq_x,
 
     while( *current_position < query_l ) {
         
-        c = seq_x[(*current_position)++];
+        c = seq_x[(*current_position)];
+		*current_position = (*current_position) + 1;
             
         if(c == 'A' || c == 'C' || c == 'G' || c == 'T' || c == 'N') {
 

@@ -4,6 +4,12 @@ An frequency analysis suite for DNA sequences
 Freqnyser is composed of several programs which can do a lot for you! 
 Find below descriptions of each program as well as examples of the command line usage:
 
+
+### one-motif-finder
+Finds a given motif (sequence pattern) in a fasta file. NOTICE: use letter 'N' for any letter match and it will not impact percentage of identity. You can also vary the minimum percentage of identity with -pident. E.g.:
+
+>bin/one-motif-finder -query FASTA -out FILEOUTPUT -motif CCGCCGTNNCCNC -pident 0.75
+
 ### consecutive-finder
 This program finds all sequences of a given polymer that is repeated 3 times consecutively with a maximum distance between each of them
 For instance:
@@ -140,5 +146,9 @@ Runs massive-gen and then compare-gen easily. Just remember that the hotspots fi
 
 >./generate-all.sh chromo hotspots k
 
-  
- 
+### runAllSplits.sh
+
+This script finds a given motif in (1) the whole chromosomes of human, (2) the hotspots of human and (3) the hotspots of human AGAIN but counting hotspots only once. Thus it generates a few files (.motifs) that contain lines indicating how many times the motif was found. 
+Use it as follows:
+
+>./runAllSplits.sh MOTIF

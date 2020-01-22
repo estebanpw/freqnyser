@@ -39,16 +39,18 @@ def main(argv):
             else:
                 output_path = os.path.join(os.getcwd(), arg)
 
-    # CAMBIAR ESTO PARA LEERLO DEL ARCHIVO
-    columns = ['file', 'length', 'AA', 'AC', 'AG', 'AT', 'CA', 'CC', 'CG', 'CT', 'GA', 'GC', 'GG', 'GT', 'TA', 'TC',
-               'TG', 'TT']
+    # columns = ['FILE', 'LENGTH', 'AA', 'AC', 'AG', 'AT', 'CA', 'CC', 'CG', 'CT', 'GA', 'GC', 'GG', 'GT', 'TA', 'TC', 'TG', 'TT']
+    reader = pd.read_csv(os.path.join(input_path, os.listdir(input_path)[0]))
+    columns = reader['kmer'].array
+    columns = np.insert(columns, 0, 'FILE', axis=0)
+    print(columns)
 
     df = pd.DataFrame(columns=columns)
 
     for filename in os.listdir(input_path):
         file = pd.read_csv(os.path.join(input_path, filename))
         values = file['rel_freq']
-        values = np.around(values, decimals=4)
+        #values = np.around(values, decimals=8)
         # shifteamos todos los indices 1 a la derecha
         values.index = values.index + 1
         # concatenamos el nombre del fasta en la posicion 0 de la serie
